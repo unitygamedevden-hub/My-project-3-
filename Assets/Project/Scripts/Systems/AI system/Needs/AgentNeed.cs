@@ -11,6 +11,6 @@ namespace Project.Scripts.Systems.AI_system.Needs
         public float increaseRate = 2f; // Швидкість зростання потреби
 
         // Кожна потреба сама вирішує, що їй записувати в пам'ять агента
-        public abstract void UpdateNeed(GOAPAgent agent);
+        public abstract void UpdateNeed(GoapAgent agent);
     }
 }

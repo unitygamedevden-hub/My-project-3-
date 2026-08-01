@@ -2824,6 +2824,7 @@ GameObject:
   - component: {fileID: 1858307967}
   - component: {fileID: 1858307966}
   - component: {fileID: 1858307968}
+  - component: {fileID: 1858307969}
   m_Layer: 0
   m_Name: Agent
   m_TagString: Untagged
@@ -2880,6 +2881,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1eb3a2b3c5d57bc35b45560875fcdc4f, type: 2}
   - {fileID: 11400000, guid: 10417a307c7f9c28593a445c079433e2, type: 2}
   - {fileID: 11400000, guid: 931d9fc988ea1d19dab7910d1b807ffd, type: 2}
+  - {fileID: 11400000, guid: 7f937e7118c06b93ca51eecde3a318c8, type: 2}
 --- !u!114 &1858307962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3047,6 +3049,30 @@ MonoBehaviour:
   - {fileID: 218769144}
   - {fileID: 1915445477}
   currentVisibleTarget: {fileID: 1417204476}
+--- !u!114 &1858307969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1858307955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 035d0dd5140a6e50baf5388c355acf5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Systems.AI_system.Actions.ChaseAction
+  actionName: Chase
+  cost: 1
+  requiresInRange: 1
+  stoppingDistance: 1.5
+  targetTransform: {fileID: 0}
+  inspectorPreconditions:
+  - key: 4
+    value: 1
+  inspectorEffects:
+  - key: 5
+    value: 1
+  chaseSpeed: 4.5
 --- !u!1 &1899489122
 GameObject:
   m_ObjectHideFlags: 0

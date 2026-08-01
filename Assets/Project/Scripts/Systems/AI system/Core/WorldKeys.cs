@@ -9,6 +9,7 @@ namespace Project.Scripts.Systems.AI_system.Core
             IsPatrolling,
             AtWaypoint,
             HasTarget,
+            IsTargetReached,
             IsDead
         }
     }

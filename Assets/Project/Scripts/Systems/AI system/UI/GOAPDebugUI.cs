@@ -9,7 +9,7 @@ namespace Project.Scripts.Systems.AI_system.UI
     public class GOAPDebugUI : MonoBehaviour
     {
         [Header("References")]
-        public GOAPAgent agent;
+        public GoapAgent agent;
         public SleepNeed sleepNeed; // Поки що слідкуємо тільки за сном
 
         [Header("UI Style Settings")]

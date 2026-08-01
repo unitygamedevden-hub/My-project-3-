@@ -6,7 +6,7 @@ namespace Project.Scripts.Systems.AI_system.Needs
 {
     public class SleepNeed : MonoBehaviour
     {
-        public GOAPAgent agent;
+        public GoapAgent agent;
         public float currentValue = 0f;
 
         [Header("Thresholds (Порогові значення)")]

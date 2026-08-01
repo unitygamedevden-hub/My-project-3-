@@ -1,16 +1,20 @@
 using System.Collections.Generic;
 using System.Linq;
+using Project.Scripts.Systems.AI_system.Core.Project.Scripts.Systems.AI_system.Core;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 namespace Project.Scripts.Systems.AI_system.Core
 {
     [RequireComponent(typeof(NavMeshAgent))]
-    public class GOAPAgent : MonoBehaviour
+    public class GoapAgent : MonoBehaviour
     {
+        private static readonly int Speed = Animator.StringToHash("Speed");
+
         [Header("Agent Data")]
-        public WorldState Memory = new WorldState();
-        public List<GOAPGoal> AvailableGoals;
+        public readonly WorldState Memory = new WorldState();
+        [FormerlySerializedAs("AvailableGoals")] public List<GOAPGoal> availableGoals;
         
         // Змінні для внутрішнього стану
         private List<GOAPAction> _availableActions;
@@ -18,11 +22,14 @@ namespace Project.Scripts.Systems.AI_system.Core
         private GOAPAction _currentAction;
         private GOAPGoal _currentGoal;
         
-        // --- ВЛАСТИВОСТІ ДЛЯ UI (Саме їх не вистачало) ---
+        // Кеш для відстеження змін зору та уникнення спаму переривань
+        private bool _wasTargetVisible;
+        
+        // --- ВЛАСТИВОСТІ ДЛЯ UI ---
         public string CurrentStateName => _currentState.ToString();
         public GOAPGoal CurrentGoal => _currentGoal;
         public GOAPAction CurrentAction => _currentAction;
-        // ------------------------------------------------
+        // -------------------------
         
         // Компоненти
         public NavMeshAgent NavAgent { get; private set; }
@@ -42,16 +49,39 @@ namespace Project.Scripts.Systems.AI_system.Core
             // Знаходимо всі дії (GOAPAction), які висять на цьому об'єкті
             _availableActions = GetComponents<GOAPAction>().ToList();
             
-            // --- ДОДАЙ ЦЕЙ БЛОК ІНІЦІАЛІЗАЦІЇ ---
-            Memory.SetState("IsExhausted", false); // Початково агент не втомлений
+            // Початкові стани пам'яті
+            Memory.SetState(WorldKeys.HasTarget.ToString(), false);
+            Memory.SetState("IsExhausted", false);
             Memory.SetState("AtWaypoint", false);
         }
 
         private void Update()
         {
-            // Оновлюємо анімацію швидкості (щоб Animator знав, чи ми біжимо)
-            // Припускаємо, що в Аніматорі є параметр "Speed" типу Float
-            AgentAnimator.SetFloat("Speed", NavAgent.velocity.magnitude);
+            if (AgentAnimator != null)
+            {
+                AgentAnimator.SetFloat(Speed, NavAgent.velocity.magnitude);
+            }
+
+            // Безпечно перевіряємо стан HasTarget з пам'яті агента
+            bool isTargetVisible = false;
+            object targetState = Memory.GetState(WorldKeys.HasTarget);
+            if (targetState is bool targetVal)
+            {
+                isTargetVisible = targetVal;
+            }
+
+            // --- ОДНОРАЗОВЕ РЕАКТИВНЕ ПЕРЕРИВАННЯ ---
+            // Спрацьовує рівно один раз, коли агент вперше помічає ціль
+            if (isTargetVisible && !_wasTargetVisible)
+            {
+                if (_currentGoal == null || _currentGoal.goalName != "Переслідування")
+                {
+                    Debug.Log("<color=orange>[GOAP] Помічено ціль! Перериваємо поточну рутину для погоні.</color>");
+                    InterruptAction();
+                }
+            }
+            _wasTargetVisible = isTargetVisible;
+            // ----------------------------------------
 
             switch (_currentState)
             {
@@ -81,14 +111,12 @@ namespace Project.Scripts.Systems.AI_system.Core
 
             if (_currentAction.CheckProceduralPrecondition(gameObject))
             {
-                // Викликаємо OnActivate ОДИН РАЗ при старті дії
                 _currentAction.OnActivate(); 
 
                 if (_currentAction.requiresInRange)
                 {
                     _currentState = AgentState.MovingToTarget;
                     
-                    // --- НОВИЙ КОД ДЛЯ РУХУ ---
                     if (_currentAction.targetTransform != null)
                     {
                         NavAgent.SetDestination(_currentAction.targetTransform.position);
@@ -97,7 +125,6 @@ namespace Project.Scripts.Systems.AI_system.Core
                     {
                         Debug.LogWarning($"[GOAP] Дія {_currentAction.GetType().Name} вимагає підійти, але targetTransform порожній!");
                     }
-                    // ---------------------------
                 }
                 else
                 {
@@ -117,71 +144,87 @@ namespace Project.Scripts.Systems.AI_system.Core
 
             Vector3 targetPosition = _currentAction.targetTransform.position;
             Vector3 direction = (targetPosition - transform.position).normalized;
-            direction.y = 0; // Ігноруємо вертикаль, щоб агент не задирав голову
+            direction.y = 0; 
 
             if (direction != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
         
-                // 1. Якщо ми ще не дивимося на ціль (наприклад, кут більше 5 градусів)
                 if (Quaternion.Angle(transform.rotation, targetRotation) > 5f)
                 {
-                    // Вимикаємо стандартний поворот NavMeshAgent, щоб він не їхав одночасно
                     NavAgent.updateRotation = false;
-                    NavAgent.isStopped = true; // Зупиняємо рух на місці
+                    NavAgent.isStopped = true; 
 
-                    // Плавне розвертання на місці
                     transform.rotation = Quaternion.RotateTowards(
                         transform.rotation, 
                         targetRotation, 
                         NavAgent.angularSpeed * Time.deltaTime
                     );
-                    return; // Поки не розгорнемося — далі не їдемо
+                    return; 
                 }
             }
 
-            // 2. Коли розгорнулися — вмикаємо рух і стандартний поворот назад
             NavAgent.isStopped = false;
             NavAgent.updateRotation = true;
             NavAgent.SetDestination(targetPosition);
 
-            // Перевірка на прибуття до точки
             if (!NavAgent.pathPending && NavAgent.remainingDistance <= NavAgent.stoppingDistance)
             {
                 _currentState = AgentState.PerformingAction;
             }
         }
+
         private void UpdatePerformingState()
         {
-            // Виконуємо дію. Якщо вона повертає true - вона завершена
             bool isComplete = _currentAction.Perform(gameObject);
 
             if (isComplete)
             {
-                // --- ДОДАЙ ЦЕЙ ВИКЛИК ---
                 if (_currentAction != null)
                 {
                     _currentAction.OnDeactivate();
                 }
-                // ------------------------
 
-                // Накладаємо ефекти дії на нашу пам'ять (світ змінився)
                 Memory.ApplyState(_currentAction.Effects);
                 
-                _currentAction = null; // Очищаємо поточну дію
-                _currentState = AgentState.Idle; // Переходимо в Idle, щоб взяти наступну дію
+                _currentAction = null; 
+                _currentState = AgentState.Idle; 
             }
+        }
+
+        // --- МЕТОД ПЕРЕРИВАННЯ ---
+
+        private void InterruptAction()
+        {
+            if (_currentAction != null)
+            {
+                _currentAction.OnDeactivate();
+            }
+
+            _currentAction = null;
+            _currentGoal = null;
+            
+            if (_actionQueue != null)
+            {
+                _actionQueue.Clear();
+            }
+            
+            if (NavAgent.isActiveAndEnabled)
+            {
+                NavAgent.ResetPath();
+            }
+            
+            _currentState = AgentState.Idle; 
         }
 
         // --- МЕТОД ПЛАНУВАННЯ ---
 
         private void CalculatePlan()
         {
-            // Шукаємо найпріоритетнішу ціль, яку зараз можна виконати
             GOAPGoal bestGoal = null;
             int highestPriority = int.MinValue;
 
-            foreach (var goal in AvailableGoals)
+            foreach (var goal in availableGoals)
             {
                 if (goal.CanBeActivated(Memory))
                 {
@@ -197,7 +240,6 @@ namespace Project.Scripts.Systems.AI_system.Core
             if (bestGoal != null)
             {
                 _currentGoal = bestGoal;
-                // Запускаємо мозок!
                 _actionQueue = _planner.Plan(gameObject, _availableActions, Memory, bestGoal);
 
                 if (_actionQueue != null && _actionQueue.Count > 0)

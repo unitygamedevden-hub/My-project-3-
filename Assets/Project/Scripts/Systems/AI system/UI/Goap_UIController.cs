@@ -7,7 +7,7 @@ namespace Project.Scripts.Systems.AI_system.UI
     public class GOAP_UIController : MonoBehaviour
     {
         [Header("References")]
-        public GOAPAgent agent;
+        public GoapAgent agent;
 
         [Header("UI Settings")]
         [SerializeField] 

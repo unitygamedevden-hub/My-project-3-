@@ -6,7 +6,7 @@ namespace Project.Scripts.Systems.AI_system.UI
     public class GOAPMemoryDebug : MonoBehaviour
     {
         [Header("References")]
-        public GOAPAgent agent;
+        public GoapAgent agent;
 
         [Header("UI Position & Style")]
         public Vector2 windowPosition = new Vector2(10, 150);
@@ -16,7 +16,7 @@ namespace Project.Scripts.Systems.AI_system.UI
         {
             if (agent == null)
             {
-                agent = GetComponent<GOAPAgent>();
+                agent = GetComponent<GoapAgent>();
             }
         }
 

@@ -19,7 +19,7 @@ namespace Project.Scripts.Systems.AI_system
         [Header("Target Reference")]
         [SerializeField] private Transform currentVisibleTarget;  // Поточна помічена ціль
         
-        private GOAPAgent _agent;
+        private GoapAgent _agent;
         
         // Зберігаємо дані для дебагу
         private Vector3[] _lastDebugRayOrigins;
@@ -28,7 +28,7 @@ namespace Project.Scripts.Systems.AI_system
 
         private void Awake()
         {
-            _agent = GetComponent<GOAPAgent>();
+            _agent = GetComponent<GoapAgent>();
         }
 
         private void Update()
@@ -131,6 +131,12 @@ namespace Project.Scripts.Systems.AI_system
             }
         }
 
+        public Transform GetCurrentVisibleTarget()
+        {
+            return currentVisibleTarget;
+        }
+        
+        
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.yellow;
