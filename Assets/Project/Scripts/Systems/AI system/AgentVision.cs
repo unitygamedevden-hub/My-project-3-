@@ -1,4 +1,5 @@
 using Project.Scripts.Systems.AI_system.Core;
+using Project.Scripts.Systems.AI_system.Core.Project.Scripts.Systems.AI_system.Core;
 using UnityEngine;
 
 namespace Project.Scripts.Systems.AI_system
@@ -15,6 +16,11 @@ namespace Project.Scripts.Systems.AI_system
         [Header("Target Body Parts (Raycast Targets)")]
         [Tooltip("Перетягни сюди точки з префаба цілі: голова, руки, корпус, ноги тощо.")]
         [SerializeField] private Transform[] customTargetPoints;  // Список твоїх точок на тілі
+
+        [Header("Memory & Investigation")]
+        [SerializeField] private float memoryDuration = 30f;      // Час пам'яті про ціль після її зникнення (30 секунд)
+        private float _timeSinceLastSeen = 0f;
+        private Vector3 _lastKnownTargetPosition;                 // Останні відомі координати цілі
 
         [Header("Target Reference")]
         [SerializeField] private Transform currentVisibleTarget;  // Поточна помічена ціль
@@ -43,91 +49,114 @@ namespace Project.Scripts.Systems.AI_system
             Transform bestTarget = null;
             float minDistance = Mathf.Infinity;
 
-            // Якщо точок на тілі немає, виходимо, щоб не було помилки
-            if (customTargetPoints == null || customTargetPoints.Length == 0) return;
-
-            int totalPoints = customTargetPoints.Length;
-
-            foreach (var targetCollider in targetsInRadius)
+            if (customTargetPoints != null && customTargetPoints.Length > 0)
             {
-                Transform target = targetCollider.transform;
-                Vector3 directionToTarget = (target.position - transform.position).normalized;
-        
-                directionToTarget.y = 0;
-                Vector3 forward = transform.forward;
-                forward.y = 0;
+                int totalPoints = customTargetPoints.Length;
 
-                if (Vector3.Angle(forward, directionToTarget) < viewAngle / 2f)
+                foreach (var targetCollider in targetsInRadius)
                 {
-                    float distanceToTarget = Vector3.Distance(transform.position, target.position);
-                    bool isVisible = false;
+                    Transform target = targetCollider.transform;
+                    Vector3 directionToTarget = (target.position - transform.position).normalized;
+            
+                    directionToTarget.y = 0;
+                    Vector3 forward = transform.forward;
+                    forward.y = 0;
 
-                    Vector3 agentEyePosition = transform.position + Vector3.up * 1.5f;
-
-                    _lastDebugRayOrigins = new Vector3[totalPoints];
-                    _lastDebugHitPoints = new Vector3[totalPoints];
-                    _lastDebugRayHits = new bool[totalPoints];
-
-                    // Пускаємо рейкасти в кожну задану точку на тілі цілі
-                    for (int i = 0; i < totalPoints; i++)
+                    if (Vector3.Angle(forward, directionToTarget) < viewAngle / 2f)
                     {
-                        if (customTargetPoints[i] == null) continue;
+                        float distanceToTarget = Vector3.Distance(transform.position, target.position);
+                        bool isVisible = false;
 
-                        Vector3 targetPoint = customTargetPoints[i].position;
-                        Vector3 dirToPoint = (targetPoint - agentEyePosition).normalized;
-                        float distToPoint = Vector3.Distance(agentEyePosition, targetPoint);
+                        Vector3 agentEyePosition = transform.position + Vector3.up * 1.5f;
 
-                        _lastDebugRayOrigins[i] = agentEyePosition;
+                        _lastDebugRayOrigins = new Vector3[totalPoints];
+                        _lastDebugHitPoints = new Vector3[totalPoints];
+                        _lastDebugRayHits = new bool[totalPoints];
 
-                        RaycastHit hit;
-                        bool hitObstruction = Physics.Raycast(agentEyePosition, dirToPoint, out hit, distToPoint, obstructionMask);
-
-                        if (hitObstruction)
+                        for (int i = 0; i < totalPoints; i++)
                         {
-                            _lastDebugHitPoints[i] = hit.point;
-                            _lastDebugRayHits[i] = false; // Перешкода заблокувала промінь
+                            if (customTargetPoints[i] == null) continue;
+
+                            Vector3 targetPoint = customTargetPoints[i].position;
+                            Vector3 dirToPoint = (targetPoint - agentEyePosition).normalized;
+                            float distToPoint = Vector3.Distance(agentEyePosition, targetPoint);
+
+                            _lastDebugRayOrigins[i] = agentEyePosition;
+
+                            RaycastHit hit;
+                            bool hitObstruction = Physics.Raycast(agentEyePosition, dirToPoint, out hit, distToPoint, obstructionMask);
+
+                            if (hitObstruction)
+                            {
+                                _lastDebugHitPoints[i] = hit.point;
+                                _lastDebugRayHits[i] = false; 
+                            }
+                            else
+                            {
+                                _lastDebugHitPoints[i] = targetPoint;
+                                _lastDebugRayHits[i] = true; 
+                                isVisible = true;
+                            }
+                        }
+
+                        if (isVisible)
+                        {
+                            if (distanceToTarget < minDistance)
+                            {
+                                minDistance = distanceToTarget;
+                                bestTarget = target;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- ОБРОБКА ПАМ'ЯТІ ТА СТАНІВ АГЕНТА ---
+            if (_agent != null)
+            {
+                if (bestTarget != null)
+                {
+                    // Ціль знайдено і вона на очних точках
+                    currentVisibleTarget = bestTarget;
+                    _lastKnownTargetPosition = bestTarget.position;
+                    _timeSinceLastSeen = 0f;
+
+                    // Оновлюємо пам'ять через enum WorldKeys
+                    _agent.Memory.SetState(WorldKeys.HasTarget.ToString(), true);
+                    _agent.Memory.SetState(WorldKeys.KnowsTargetLocation.ToString(), true);
+                    _agent.Memory.SetState(WorldKeys.IsInvestigating.ToString(), false);
+                }
+                else
+                {
+                    // Ціль втрачено з поля зору
+                    currentVisibleTarget = null;
+                    _agent.Memory.SetState(WorldKeys.HasTarget.ToString(), false);
+
+                    // Перевіряємо, чи діє наша пам'ять про останню позицію (до 30 секунд)
+                    object knowsLocObj = _agent.Memory.GetState(WorldKeys.KnowsTargetLocation);
+                    bool knowsLocation = knowsLocObj is bool val && val;
+
+                    if (knowsLocation)
+                    {
+                        _timeSinceLastSeen += Time.deltaTime;
+
+                        if (_timeSinceLastSeen <= memoryDuration)
+                        {
+                            // Агент переходить у стан розслідування/пошуку у відомій точці
+                            _agent.Memory.SetState(WorldKeys.IsInvestigating.ToString(), true);
                         }
                         else
                         {
-                            _lastDebugHitPoints[i] = targetPoint;
-                            _lastDebugRayHits[i] = true;  // Промінь успішно дійшов до точки
-                            isVisible = true;
+                            // Час вийшов (30 секунд минуло) — повністю забуваємо ціль
+                            _agent.Memory.SetState(WorldKeys.KnowsTargetLocation.ToString(), false);
+                            _agent.Memory.SetState(WorldKeys.IsInvestigating.ToString(), false);
                         }
                     }
 
-                    if (isVisible)
-                    {
-                        if (distanceToTarget < minDistance)
-                        {
-                            minDistance = distanceToTarget;
-                            bestTarget = target;
-                        }
-                    }
+                    _lastDebugRayOrigins = null;
+                    _lastDebugHitPoints = null;
+                    _lastDebugRayHits = null;
                 }
-            }
-
-            // Оновлюємо стан цілі в пам'яті агента
-            if (bestTarget != null)
-            {
-                currentVisibleTarget = bestTarget;
-                if (_agent != null)
-                {
-                    _agent.Memory.SetState("HasTarget", true);
-                }
-            }
-            else
-            {
-                if (currentVisibleTarget != null)
-                {
-                    currentVisibleTarget = null;
-                    if (_agent != null)
-                    {
-                        _agent.Memory.SetState("HasTarget", false);
-                    }
-                }
-                _lastDebugRayOrigins = null;
-                _lastDebugHitPoints = null;
-                _lastDebugRayHits = null;
             }
         }
 
@@ -135,7 +164,11 @@ namespace Project.Scripts.Systems.AI_system
         {
             return currentVisibleTarget;
         }
-        
+
+        public Vector3 GetLastKnownPosition()
+        {
+            return _lastKnownTargetPosition;
+        }
         
         private void OnDrawGizmosSelected()
         {
@@ -155,7 +188,6 @@ namespace Project.Scripts.Systems.AI_system
             Gizmos.DrawRay(transform.position, leftDir * viewRadius);
             Gizmos.DrawRay(transform.position, rightDir * viewRadius);
 
-            // Візуалізація променів до кастомних точок тіла
             if (_lastDebugRayOrigins != null && _lastDebugHitPoints != null)
             {
                 for (int i = 0; i < _lastDebugRayOrigins.Length; i++)

@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 773a06bf7aca0ba66abe7aa6d185b781, type: 3}
-  m_Name: Goal_Chase
+  m_Name: Goal_Attack
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Systems.AI_system.Core.GOAPGoal
-  goalName: "\u041F\u0440\u0435\u0441\u043B\u0456\u0434\u0443\u0432\u0430\u043D\u043D\u044F"
-  basePriority: 100
+  goalName: "\u0410\u0442\u0430\u043A\u0430"
+  basePriority: 150
   preconditionsList:
   - key: 4
     value: 1
   desiredEffectsList:
-  - key: 5
+  - key: 7
     value: 1

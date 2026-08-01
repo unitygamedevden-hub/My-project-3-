@@ -2825,6 +2825,7 @@ GameObject:
   - component: {fileID: 1858307966}
   - component: {fileID: 1858307968}
   - component: {fileID: 1858307969}
+  - component: {fileID: 1858307970}
   m_Layer: 0
   m_Name: Agent
   m_TagString: Untagged
@@ -2841,7 +2842,7 @@ Transform:
   m_GameObject: {fileID: 1858307955}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: -15.24, y: 1, z: 5.52}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2877,11 +2878,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a34e0ecafe076936b5004b3e13c46c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Systems.AI_system.Core.GOAPAgent
-  AvailableGoals:
+  availableGoals:
   - {fileID: 11400000, guid: 1eb3a2b3c5d57bc35b45560875fcdc4f, type: 2}
   - {fileID: 11400000, guid: 10417a307c7f9c28593a445c079433e2, type: 2}
   - {fileID: 11400000, guid: 931d9fc988ea1d19dab7910d1b807ffd, type: 2}
   - {fileID: 11400000, guid: 7f937e7118c06b93ca51eecde3a318c8, type: 2}
+  - {fileID: 11400000, guid: c4db88bb4ab25bbcaaa0b364e36ca47a, type: 2}
 --- !u!114 &1858307962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2894,7 +2896,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a09c7d0e57eb4b099c9b4847606bc03b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Systems.AI_system.Actions.SleepAction
-  actionName: "\u0421\u043E\u043D"
+  actionName: "\u0412\u0456\u0434\u043F\u043E\u0447\u0456\u043D\u043E\u043A"
   cost: 0.1
   requiresInRange: 0
   stoppingDistance: 1.5
@@ -3048,6 +3050,7 @@ MonoBehaviour:
   - {fileID: 1847516953}
   - {fileID: 218769144}
   - {fileID: 1915445477}
+  memoryDuration: 30
   currentVisibleTarget: {fileID: 1417204476}
 --- !u!114 &1858307969
 MonoBehaviour:
@@ -3061,18 +3064,45 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 035d0dd5140a6e50baf5388c355acf5b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Systems.AI_system.Actions.ChaseAction
-  actionName: Chase
+  actionName: "\u041F\u0435\u0440\u0435\u0441\u043B\u0456\u0434\u0443\u0432\u0430\u043D\u043D\u044F"
   cost: 1
-  requiresInRange: 1
+  requiresInRange: 0
   stoppingDistance: 1.5
   targetTransform: {fileID: 0}
   inspectorPreconditions:
   - key: 4
     value: 1
   inspectorEffects:
-  - key: 5
+  - key: 8
     value: 1
   chaseSpeed: 4.5
+--- !u!114 &1858307970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1858307955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 531720473f4344a1bcac457444840a3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Systems.AI_system.Actions.AttackAction
+  actionName: "\u0410\u0442\u0430\u043A\u0430"
+  cost: 1
+  requiresInRange: 0
+  stoppingDistance: 1.5
+  targetTransform: {fileID: 0}
+  inspectorPreconditions:
+  - key: 4
+    value: 1
+  - key: 8
+    value: 1
+  inspectorEffects:
+  - key: 7
+    value: 1
+  attackRange: 2
+  attackCooldown: 1.5
 --- !u!1 &1899489122
 GameObject:
   m_ObjectHideFlags: 0

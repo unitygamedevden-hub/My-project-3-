@@ -10,7 +10,11 @@ namespace Project.Scripts.Systems.AI_system.Core
             AtWaypoint,
             HasTarget,
             IsTargetReached,
-            IsDead
+            IsDead,
+            TargetEliminated,
+            TargetInRange,
+            KnowsTargetLocation, // Чи знає агент, де останній раз був гравець
+            IsInvestigating      // Чи шукає агент ворога в тій точці
         }
     }
 }

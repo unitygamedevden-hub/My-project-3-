@@ -22,9 +22,6 @@ namespace Project.Scripts.Systems.AI_system.Core
         private GOAPAction _currentAction;
         private GOAPGoal _currentGoal;
         
-        // Кеш для відстеження змін зору та уникнення спаму переривань
-        private bool _wasTargetVisible;
-        
         // --- ВЛАСТИВОСТІ ДЛЯ UI ---
         public string CurrentStateName => _currentState.ToString();
         public GOAPGoal CurrentGoal => _currentGoal;
@@ -70,18 +67,16 @@ namespace Project.Scripts.Systems.AI_system.Core
                 isTargetVisible = targetVal;
             }
 
-            // --- ОДНОРАЗОВЕ РЕАКТИВНЕ ПЕРЕРИВАННЯ ---
-            // Спрацьовує рівно один раз, коли агент вперше помічає ціль
-            if (isTargetVisible && !_wasTargetVisible)
+            // --- РЕАКТИВНЕ ПЕРЕРИВАННЯ ---
+            // Якщо ворог у полі зору, а агент зараз зайнятий небойовою ціллю (наприклад, Патрулювання), миттєво перериваємо
+            if (isTargetVisible)
             {
-                if (_currentGoal == null || _currentGoal.goalName != "Переслідування")
+                if (_currentGoal != null && _currentGoal.goalName != "Атака" && _currentGoal.goalName != "Переслідування")
                 {
-                    Debug.Log("<color=orange>[GOAP] Помічено ціль! Перериваємо поточну рутину для погоні.</color>");
+                    Debug.Log("<color=orange>[GOAP] Ворог у полі зору! Перериваємо рутину.</color>");
                     InterruptAction();
                 }
             }
-            _wasTargetVisible = isTargetVisible;
-            // ----------------------------------------
 
             switch (_currentState)
             {
